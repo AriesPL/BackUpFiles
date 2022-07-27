@@ -10,32 +10,31 @@ namespace BackUpFiles
 
 		static void Main(string[] args)
 		{
-            string fileName = "1.txt";
+			string fileName;
+			string sourceFile;
+			string destFile;
 
-            string sourceFile = Path.Combine(pathToOriginalFolder, fileName);
-            string destFile = Path.Combine(pathToBackUpFolder, fileName);
+			if(!Directory.Exists(pathToBackUpFolder))
+			Directory.CreateDirectory(pathToBackUpFolder);
 
-            Directory.CreateDirectory(pathToBackUpFolder);
+			if (Directory.Exists(pathToOriginalFolder))
+			{
+				string[] files = Directory.GetFiles(pathToOriginalFolder);
+				
+				foreach (string file in files)
+				{
+					fileName = Path.GetFileName(file);
+					sourceFile = Path.Combine(pathToOriginalFolder, fileName);
+					destFile = Path.Combine(pathToBackUpFolder, fileName);
+					File.Copy(file, destFile, true);
+				}
+			}
+			else
+			{
+				Console.WriteLine("Source path does not exist!");
+			}
 
-            File.Copy(sourceFile, destFile, true);
-
-            if (Directory.Exists(pathToOriginalFolder))
-            {
-                string[] files = Directory.GetFiles(pathToOriginalFolder);
-
-                foreach (string file in files)
-                {
-                    fileName = Path.GetFileName(file);
-                    destFile = Path.Combine(pathToBackUpFolder, fileName);
-                    File.Copy(file, destFile, true);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Source path does not exist!");
-            }
-
-            Console.WriteLine("Press any key to exit.");
+			Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
         }
     }

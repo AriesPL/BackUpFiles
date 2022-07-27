@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 
 namespace BackUpFiles
@@ -33,14 +32,14 @@ namespace BackUpFiles
 					sourceFile = Path.Combine(pathToOriginalFolder, fileName);
 					destFile = Path.Combine(pathToBackUpFolder, fileName);
 					File.Copy(file, destFile, true);
-					Logbook($"{dataNow} Creating a copy of the file {fileName} successfully.\n");
+					Logbook($"{dataNow} Creating a copy of the file {fileName} successfully.");
 				}
 			}
 
 			else
 			{
 				Console.WriteLine("Source path does not exist!");
-				Logbook($"{dataNow} Source path does not exist!\n");
+				Logbook($"{dataNow} Source path does not exist!");
 			}
 
 			Console.ReadKey();
@@ -52,7 +51,7 @@ namespace BackUpFiles
 			{
 				try
 				{
-					streamWriter.WriteLine(records);
+					streamWriter.WriteLine(records + "\n");
 				}
 				catch (Exception e)
 				{

@@ -31,8 +31,15 @@ namespace BackUpFiles
 					fileName = Path.GetFileName(file);
 					sourceFile = Path.Combine(pathToOriginalFolder, fileName);
 					destFile = Path.Combine(pathToBackUpFolder, fileName);
-					File.Copy(file, destFile, true);
-					Logbook($"{dataNow} Creating a copy of the file {fileName} successfully.");
+					try 
+					{
+						File.Copy(file, destFile, true);
+						Logbook($"{dataNow} Creating a copy of the file {fileName} successfully.");
+					}
+					catch (Exception ex)
+					{
+						Logbook("Exception: " + ex.Message);
+					}
 				}
 			}
 
@@ -42,6 +49,7 @@ namespace BackUpFiles
 				Logbook($"{dataNow} Source path does not exist!");
 			}
 
+			Logbook("\n");
 			Console.ReadKey();
 		}
 
@@ -51,11 +59,11 @@ namespace BackUpFiles
 			{
 				try
 				{
-					streamWriter.WriteLine(records + "\n");
+					streamWriter.WriteLine(records);
 				}
-				catch (Exception e)
+				catch (Exception ex)
 				{
-					Console.WriteLine("Exception: " + e.Message);
+					streamWriter.WriteLine("Exception: " + ex.Message);
 				}
 			}
 		}

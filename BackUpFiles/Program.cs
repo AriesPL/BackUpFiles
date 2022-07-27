@@ -5,8 +5,9 @@ namespace BackUpFiles
 {
 	internal class Program
 	{
+		static DateTime dataNow = DateTime.Now;
 		private static string pathToOriginalFolder = "C:/Users/Алексей/source/repos/BackUpFiles/BackUpFiles/original";
-		private static string pathToBackUpFolder = "BackUp";
+		private static string pathToBackUpFolder = "BackUp/" + dataNow.ToShortDateString();
 
 		static void Main(string[] args)
 		{
@@ -14,13 +15,13 @@ namespace BackUpFiles
 			string sourceFile;
 			string destFile;
 
-			if(!Directory.Exists(pathToBackUpFolder))
-			Directory.CreateDirectory(pathToBackUpFolder);
+			if (!Directory.Exists(pathToBackUpFolder))
+				Directory.CreateDirectory(pathToBackUpFolder);
 
 			if (Directory.Exists(pathToOriginalFolder))
 			{
 				string[] files = Directory.GetFiles(pathToOriginalFolder);
-				
+
 				foreach (string file in files)
 				{
 					fileName = Path.GetFileName(file);
@@ -34,10 +35,9 @@ namespace BackUpFiles
 				Console.WriteLine("Source path does not exist!");
 			}
 
-			Console.WriteLine("Press any key to exit.");
-            Console.ReadKey();
-        }
-    }
+			Console.ReadKey();
+		}
+	}
 }
 
 

@@ -1,67 +1,156 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Backupey
 {
-	static class Program
-	{
-		static void Main(string[] args)
+    class Backuper
+    {
+        private readonly string _targetPath;
+        private readonly List<string> _sourcePaths = new List<string>();
+        private readonly string _timestamp;
+
+		public Backuper(string targetPath, string[] sourcePaths, string timestamp)
 		{
-			var timestamp = Configuration.GetTimestamp();
-			string pathToOriginalFolder = "C:/Users/Алексей/source/repos/BackUpFiles/BackUpFiles/original";
-			string pathToBackUpFolder = "BackUp/"+timestamp;
-
-			if (!Directory.Exists(pathToBackUpFolder))
-				Directory.CreateDirectory(pathToBackUpFolder);
-
-			if (Directory.Exists(pathToOriginalFolder))
+			if (!ValidatePath(targetPath))
 			{
-				string[] files = Directory.GetFiles(pathToOriginalFolder);
+				var error = $"Не верно указан путь целевой папки: {targetPath}.";
+				throw new ArgumentException(error);
+			}
+			_targetPath = targetPath;
 
-				foreach (string file in files)
+			foreach (var sourcePath in sourcePaths)
+			{
+				if (!ValidatePath(sourcePath))
 				{
-					string fileName = Path.GetFileName(file);
-					string destFile = Path.Combine(pathToBackUpFolder, fileName);
-					try
-					{
-						File.Copy(file, destFile, true);
-						Logbook($"{timestamp} Creating a copy of the file {fileName} successfully.");
-					}
-					catch (Exception ex)
-					{
-						Logbook("Exception: " + ex.Message);
-					}
+					continue;
 				}
+
+				if (!Directory.Exists(sourcePath))
+				{
+					continue;
+				}
+
+				_sourcePaths.Add(sourcePath);
 			}
 
-			else
+			if (!_sourcePaths.Any())
 			{
-				Console.WriteLine("Source path does not exist!");
-				Logbook($"{timestamp} Source path does not exist!");
+				var error = $"Не указаны валидные пути исходных папок.";
+				throw new ArgumentException(error);
 			}
 
-			Logbook("\n");
+			_timestamp = timestamp;
 		}
 
-		private static void Logbook(string records)
-		{
-			string pathToLogFile = "LogFile.txt";
+		/// <summary>
+		/// Выполнить бекап папок
+		/// </summary>
+		public void Backup()
+        {
+            var backupPath = Path.Combine(_targetPath, _timestamp);
+            Directory.CreateDirectory(backupPath);
 
-			if (!File.Exists(pathToLogFile))
-				File.Create(pathToLogFile);
+            foreach (var sourcePath in _sourcePaths)
+            {
+                var targetPath = GetUniqueTargetPath(backupPath, sourcePath);
+                Directory.CreateDirectory(targetPath);
 
-			using (StreamWriter streamWriter = new StreamWriter(pathToLogFile, true))
-			{
-				try
-				{
-					streamWriter.WriteLine(records);
-				}
-				catch (Exception ex)
-				{
-					streamWriter.WriteLine("Exception: " + ex.Message);
-				}
-			}
-		}
-	}
+                CopyFilesRecursively(sourcePath, targetPath);
+            }
+        }
+
+        /// <summary>
+        /// Проверить путь на валидность
+        /// </summary>
+        /// <param name="targetPath">Путь к директории</param>
+        /// <returns>True - путь валидный</returns>
+        private static bool ValidatePath(string targetPath)
+        {
+            if (string.IsNullOrEmpty(targetPath))
+                return false;
+
+            try
+            {
+                // Выбрасывает ArgumentException если параметр содержит невалидные символы, пустой или содержит только пробелы.
+                string root = Path.GetPathRoot(targetPath);
+
+                if (string.IsNullOrEmpty(root))
+                    return false;
+
+                // Выбрасывает ArgumentException если параметр содержит невалидные символы, определенные в GetInvalidPathChars или
+                // если передать String.Empty в параметр.
+                string directory = Path.GetDirectoryName(targetPath);
+
+                if (string.IsNullOrEmpty(directory))
+                    return false;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Получить уникальное имя целевой папки с временным штампом
+        /// </summary>
+        /// <param name="targetPath">Целевой путь</param>
+        private string GetUniqueTargetPath(string backupPath, string sourcePath)
+        {
+            var name = new DirectoryInfo(sourcePath).Name;
+
+            var basePath = Path.Combine(backupPath, name);
+
+            var newTargetPath = basePath;
+
+            var n = 0;
+            while (Directory.Exists(newTargetPath))
+            {
+                newTargetPath = $"{basePath}({n})";
+                n++;
+            }
+
+            return newTargetPath;
+        }
+
+        /// <summary>
+        /// Скопировать содержимое папки
+        /// </summary>
+        /// <param name="sourcePath">Папка источник</param>
+        /// <param name="targetPath">Целевая папка</param>
+        private static void CopyFilesRecursively(string sourcePath, string targetPath)
+        {
+            // Создать все папки, включая вложенные
+            foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+            {
+                var replacedPath = dirPath.Replace(sourcePath, targetPath);
+                Directory.CreateDirectory(replacedPath);
+            }
+
+            // Создать копии всех файлов
+            foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
+            {
+                var replacedFile = newPath.Replace(sourcePath, targetPath);
+                File.Copy(newPath, replacedFile, true);
+            }
+        }
+
+    }
+
+    static class Program
+    {
+        static void Main(string[] args)
+        {
+            var settings = Configuration.GetSettings();
+            var timestamp = Configuration.GetTimestamp();
+
+            var backuper = new Backuper(settings.TargetPath, settings.SourcePaths, timestamp);
+            backuper.Backup();
+
+        }
+    }
 }
 

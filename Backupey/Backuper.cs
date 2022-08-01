@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,25 +12,37 @@ namespace Backupey
         private readonly List<string> _sourcePaths = new List<string>();
         private readonly string _timestamp;
 
+        /// <summary>
+        /// Воркер для выполнения бекапов
+        /// </summary>
+        /// <param name="targetPath">Целевой путь</param>
+        /// <param name="sourcePaths">Пути источников</param>
+        /// <param name="timestamp">Временной штамп</param>
 		public Backuper(string targetPath, string[] sourcePaths, string timestamp)
 		{
 			if (!ValidatePath(targetPath))
 			{
 				var error = $"Не верно указан путь целевой папки: {targetPath}.";
+                Log.Error(error);
 				throw new ArgumentException(error);
 			}
+            
 			_targetPath = targetPath;
 
-			foreach (var sourcePath in sourcePaths)
+            Log.Information($"Исходных папок: {sourcePaths.Length}");
+
+            foreach (var sourcePath in sourcePaths)
 			{
 				if (!ValidatePath(sourcePath))
 				{
-					continue;
+                    Log.Error($"Не верно указан путь исходной папки: {sourcePath}.");
+                    continue;
 				}
 
 				if (!Directory.Exists(sourcePath))
 				{
-					continue;
+                    Log.Error($"Исходная папка не существует: {sourcePath}.");
+                    continue;
 				}
 
 				_sourcePaths.Add(sourcePath);
@@ -38,6 +51,7 @@ namespace Backupey
 			if (!_sourcePaths.Any())
 			{
 				var error = $"Не указаны валидные пути исходных папок.";
+                Log.Error(error);
 				throw new ArgumentException(error);
 			}
 
@@ -49,16 +63,26 @@ namespace Backupey
 		/// </summary>
 		public void Backup()
         {
+            Log.Information($"Создание бекапа {_timestamp} началось.");
+
             var backupPath = Path.Combine(_targetPath, _timestamp);
             Directory.CreateDirectory(backupPath);
 
             foreach (var sourcePath in _sourcePaths)
             {
+                Log.Information($"---");
+                Log.Information($"Исходная папка: {sourcePath}");
+
                 var targetPath = GetUniqueTargetPath(backupPath, sourcePath);
                 Directory.CreateDirectory(targetPath);
 
+                Log.Information($"Целевая папка: {targetPath}");
+
                 CopyFilesRecursively(sourcePath, targetPath);
             }
+
+            Log.Information($"---");
+            Log.Information($"Создание бекапа {_timestamp} завершено.");
         }
 
         /// <summary>
@@ -69,6 +93,7 @@ namespace Backupey
         private static bool ValidatePath(string targetPath)
         {
             if (string.IsNullOrEmpty(targetPath))
+
                 return false;
 
             try
@@ -127,6 +152,9 @@ namespace Backupey
             foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
             {
                 var replacedPath = dirPath.Replace(sourcePath, targetPath);
+
+                Log.Debug($"Создание папки из {dirPath} в {replacedPath}.");
+
                 Directory.CreateDirectory(replacedPath);
             }
 
@@ -134,6 +162,9 @@ namespace Backupey
             foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
             {
                 var replacedFile = newPath.Replace(sourcePath, targetPath);
+
+                Log.Debug($"Копирование файла из {newPath} в {replacedFile}.");
+
                 File.Copy(newPath, replacedFile, true);
             }
         }
